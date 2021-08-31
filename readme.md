@@ -55,7 +55,7 @@ https://github.com/SekiroRong/Wallpaper_Generator
 
 ![](https://i.loli.net/2021/08/31/iqg1SCPZJjreK3v.png)
 
-* 白底图片转成300帧的白底gif图![image-20210831153847905](C:\Users\sekiro\AppData\Roaming\Typora\typora-user-images\image-20210831153847905.png)
+* 白底图片转成300帧的白底gif图![](https://i.loli.net/2021/08/31/M4ECh5qHlayRUbG.png)
 
 * 将24张300帧的gif图嵌入白底gif图中并储存
 
