@@ -46,3 +46,174 @@ skimage
 https://github.com/SekiroRong/Wallpaper_Generator
 
 欢迎与我交流学习。
+
+# 动态拼接壁纸生成器
+
+* conda install pywin32 #鬼知道为什么pip不行
+
+* 先整一张白底的图片
+
+![](https://i.loli.net/2021/08/31/iqg1SCPZJjreK3v.png)
+
+* 白底图片转成300帧的白底gif图![image-20210831153847905](C:\Users\sekiro\AppData\Roaming\Typora\typora-user-images\image-20210831153847905.png)
+
+* 将24张300帧的gif图嵌入白底gif图中并储存
+
+  ```python
+  import imageio
+  import pyglet
+  import win32gui, win32ui, win32con
+  import os
+  from tqdm import tqdm
+  from PIL import ImageSequence,Image
+  
+  img_path = "GIF"  # GIF Path
+  dir_path = "H:\gif_dirs.txt"  # Direction Path
+  save_path = 'H:\wallpapers' # 壁纸最终储存的位置
+  whitepath = 'D:\pythonProject\IoT\white.gif'
+  
+  # 读取目录下文件
+  f = open(dir_path, "w")
+  files = os.listdir(img_path)
+  for file in files:
+      f.write(img_path + '/' + file + '\n')
+  f.close()
+  
+  f = open(dir_path, "r")
+  dirs = f.readlines()
+  f.close()
+  length = len(dirs)
+  
+  # img = Image.new('RGB', (2560, 1440), (255, 255, 255))
+  # # img.show()
+  # # img.save('white.jpg')
+  
+  class myGIF:
+      def __init__(self, filename):
+          self.filename = filename
+          # animation = pyglet.resource.animation(self.filename)
+          # self.sprite = pyglet.sprite.Sprite(animation)
+          # print(self.sprite.width,self.sprite.height)
+          gif = Image.open(self.filename)
+          self.Iterater = ImageSequence.Iterator(gif)
+          self.width = gif.width
+          self.height = gif.height
+          print(self.width,self.height)
+  
+      def get_pos(self, x, y):
+          self.pos_x = x
+          self.pos_y = y
+          print(self.pos_x,self.pos_y)
+  
+  gifs = []
+  for i in range(length):
+      gifs.append(myGIF(dirs[i][0:-1]))
+  
+  x = 0
+  y = 0
+  layer = 0
+  for i in range(length):
+      gifs[i].get_pos(x,y)
+      if not layer:
+          x = x + gifs[i].width
+      if layer == 1:
+          y = gifs[i-5].height
+          x = x + min(gifs[i-6].width,gifs[i-1].width)
+          print(min(gifs[i - 6].width, gifs[i].width))
+      elif layer == 2:
+          y = gifs[i - 5].height + gifs[i - 11].height
+          x = x + min(gifs[i - 6].width, gifs[i].width)
+          print(min(gifs[i - 6].width, gifs[i].width))
+      elif layer == 3:
+          y = gifs[i - 5].height + gifs[i - 11].height + gifs[i - 17].height
+          x = x + min(gifs[i - 6].width, gifs[i].width)
+          print(min(gifs[i - 6].width, gifs[i].width))
+  
+      if x>3840:
+          x = 0
+          layer = layer + 1
+          y = gifs[i - 5].height
+          if layer == 2:
+              y = y + gifs[i - 11].height
+              if layer == 3:
+                  y = y + gifs[i - 17].height
+      # y = y + gif.sprite.height
+  
+  frames_out = []
+  white = Image.open(whitepath)
+  frames_w = ImageSequence.Iterator(white)
+  n = 0
+  for frame_w in tqdm(frames_w,ncols=300):
+      framecopy = frame_w.copy().convert('RGB')
+      for i in range(length):
+          framecopy.paste(gifs[i].Iterater[n], (gifs[i].pos_x, gifs[i].pos_y))
+      n = n+1
+      frames_out.append(framecopy)
+  
+  imageio.mimsave('O.gif', frames_out, 'GIF', duration=1/30)
+  ```
+
+* 获取win10桌面的句柄,用gif替换桌面
+
+  ```python
+  import pyglet
+  import win32gui, win32ui, win32con
+  
+  class AnimationSrn:
+      def __init__(self):
+  
+          parenthwnd = self.getScreenHandle()
+          print(parenthwnd)
+          left, top, right, bottom = win32gui.GetWindowRect(parenthwnd)
+          print(left, top, right, bottom)
+          # self.size = (right - left, bottom - top)
+          self.size = (3840, 2160)
+          self.gifpath = 'O.gif'
+  
+      def getScreenHandle(self):
+          hwnd = win32gui.FindWindow("Progman", "Program Manager")
+          win32gui.SendMessageTimeout(hwnd, 0x052C, 0, None, 0, 0x03E8)
+          hwnd_WorkW = None
+          while 1:
+              hwnd_WorkW = win32gui.FindWindowEx(None, hwnd_WorkW, "WorkerW", None)
+              if not hwnd_WorkW:
+                  continue
+              hView = win32gui.FindWindowEx(hwnd_WorkW, None, "SHELLDLL_DefView", None)
+              if not hView:
+                  continue
+              h = win32gui.FindWindowEx(None, hwnd_WorkW, "WorkerW", None)
+              while h:
+                  win32gui.SendMessage(h, 0x0010, 0, 0);  # WM_CLOSE
+                  h = win32gui.FindWindowEx(None, hwnd_WorkW, "WorkerW", None)
+              break
+          return hwnd
+  
+          # return win32gui.GetDesktopWindow()
+  
+  
+      def putGifScreen(self):
+          parenthwnd = self.getScreenHandle()
+          # 使用pyglet加载动画
+          # print ("1ll", parenthwnd)
+          animation = pyglet.image.load_animation(self.gifpath)  # 使用pyglet 加载一个gif 动图
+          sprite = pyglet.sprite.Sprite(animation)  # 创建一个动画
+          # 创建一个新的窗口
+          # 创建-个窗口, 并将其设置为图像大小
+          newwin = pyglet.window.Window(width=3840,
+                                        height=2160,
+                                        style=pyglet.window.Window.WINDOW_STYLE_BORDERLESS)
+          # 将默认的背景图的父窗口改为新创建的窗口
+          # print(win._hwnd)
+          win32gui.SetParent(newwin._hwnd, parenthwnd)
+  
+          @newwin.event  # 事件处理程序的函数装饰器.用來显示图像
+          def on_draw():
+              newwin.clear()
+              sprite.draw()
+  
+          pyglet.app.run()
+  
+  
+  if __name__ == '__main__':
+      AnimationSrn().putGifScreen()
+  ```
