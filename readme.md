@@ -217,3 +217,4 @@ https://github.com/SekiroRong/Wallpaper_Generator
   if __name__ == '__main__':
       AnimationSrn().putGifScreen()
   ```
+  ![在这里插入图片描述](output.gif)
